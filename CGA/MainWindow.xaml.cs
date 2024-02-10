@@ -30,7 +30,7 @@ namespace CGA
         public MainWindow()
         {
             InitializeComponent();
-            entity = Mesh.loadMesh("airplane.obj");
+            entity = Mesh.loadMesh("geo.obj");
             object_selector.ItemsSource = objects;
             vertexes.Content = "Vertex: " + entity.getVertexes().Count.ToString();
             faces.Content = "Faces: " + entity.getFaces().Count.ToString();
