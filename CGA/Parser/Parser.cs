@@ -9,10 +9,15 @@ namespace CGA.Parser
     {
         private List<Vector4> vertexes_g = new List<Vector4>();
         private List<Face3D> faces = new List<Face3D>();
+        private string path;
+
+        public OBJParser(string path) {
+            this.path = path;
+        }
 
         public void parseFile()
         {
-            foreach (string line in System.IO.File.ReadLines("shuttle.obj"))
+            foreach (string line in System.IO.File.ReadLines(path   ))
             {
                 string[] values = line.TrimEnd().Split(' ');
                 switch (values[0])

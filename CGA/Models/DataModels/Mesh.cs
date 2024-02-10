@@ -21,7 +21,7 @@ namespace CGA.Models.DataModels
 
         public static Mesh loadMesh(string path)
         {
-            OBJParser parser = new OBJParser();
+            OBJParser parser = new OBJParser(path);
             parser.parseFile();
             return parser.getMesh();
         }

@@ -32,7 +32,6 @@ namespace CGA.MyGraphics
             image.Source = wBitmap;
 
             wBitmap.Lock();
-            Vector4 t3 = new Vector4(), t4 = new Vector4();
             var faces = entity.getFaces();
             var positions = entity.GetPositionsInWorldModel(worldModel);
             var bmpInfo = new WritableBitmapInfo(wBitmap.BackBuffer, wBitmap.BackBufferStride, wBitmap.Format.BitsPerPixel);
