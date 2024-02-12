@@ -36,7 +36,8 @@ namespace CGA.Models.DataModels
             var result = new List<Vector4>();
             foreach (var position in vertexes)
             {
-                result.Add(Vector4.Transform(position, worldModel));
+                var temp = Vector4.Transform(position, worldModel);
+                result.Add(temp/temp.W);
             }
             return result;
         }

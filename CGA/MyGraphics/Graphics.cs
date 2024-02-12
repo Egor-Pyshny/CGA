@@ -40,22 +40,22 @@ namespace CGA.MyGraphics
                 int x2, y2;
                 for (int i = 0; i <= face.g_vertexes.Length-1; i++)
                 {
-                    int x1 = (int)(700 / 2 + positions[face.g_vertexes[i]].X);
+                    int x1 = (int)(positions[face.g_vertexes[i]].X);
                     x1 = (int)Math.Max(0, Math.Min(x1, width - 1));
-                    int y1 = (int)(700 / 2 + positions[face.g_vertexes[i]].Y);
+                    int y1 = (int)(positions[face.g_vertexes[i]].Y);
                     y1 = (int)Math.Max(0, Math.Min(y1, height - 1));
                     if (i == face.g_vertexes.Length - 1)
                     {
-                        x2 = (int)(700 / 2 + positions[face.g_vertexes[0]].X);
+                        x2 = (int)(positions[face.g_vertexes[0]].X);
                         x2 = (int)Math.Max(0, Math.Min(x2, width - 1));
-                        y2 = (int)(700 / 2 + positions[face.g_vertexes[0]].Y);
+                        y2 = (int)(positions[face.g_vertexes[0]].Y);
                         y2 = (int)Math.Max(0, Math.Min(y2, height - 1));
                     }
                     else
                     {
-                        x2 = (int)(700 / 2 + positions[face.g_vertexes[i + 1]].X);
+                        x2 = (int)(positions[face.g_vertexes[i + 1]].X);
                         x2 = (int)Math.Max(0, Math.Min(x2, width - 1));
-                        y2 = (int)(700 / 2 + positions[face.g_vertexes[i + 1]].Y);
+                        y2 = (int)(positions[face.g_vertexes[i + 1]].Y);
                         y2 = (int)Math.Max(0, Math.Min(y2, height - 1));
                     }
                     DrawLine(bmpInfo, x1, y1, x2, y2);

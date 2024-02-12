@@ -45,7 +45,7 @@ namespace CGA.Models.VisualModels
                     );
             }
 
-            return matrix;
+            return Matrix4x4.Transpose(matrix);
 
         }
     }

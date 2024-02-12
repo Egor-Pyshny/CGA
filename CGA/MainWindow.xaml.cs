@@ -30,7 +30,7 @@ namespace CGA
         public MainWindow()
         {
             InitializeComponent();
-            entity = Mesh.loadMesh("geo.obj");
+            entity = Mesh.loadMesh("c.obj");
             object_selector.ItemsSource = objects;
             vertexes.Content = "Vertex: " + entity.getVertexes().Count.ToString();
             faces.Content = "Faces: " + entity.getFaces().Count.ToString();
@@ -38,7 +38,7 @@ namespace CGA
             var target = new Vector3(0, 0, 0);
             var up = new Vector3(0, 1, 0);
             screen = new Screen(700, 700);
-            camera = new Camera(120, 700 / 700, 0.1f, 10, eye, target, up);
+            camera = new Camera(90, 700 / 700, 0.1f, 10, eye, target, up);
 
             var scale = 0.05f;
             
@@ -48,8 +48,8 @@ namespace CGA
                          screen.GetMatrix();*/
 
             WorldModel = Matrixes.Scale(new Vector3(scale, scale, scale)) *
-                         camera.GetMatrix() *
-                         Matrixes.Projection(camera.FOV, camera.Aspect, camera.zNear, camera.zFar) *
+                         camera.GetMatrix() * 
+                         Matrix4x4.CreatePerspectiveFieldOfView(float.Pi/2,1,0.1f,10) *
                          screen.GetMatrix();
 
             renderer = new Graphics(img);
