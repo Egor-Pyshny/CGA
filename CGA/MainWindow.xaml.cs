@@ -22,10 +22,14 @@ namespace CGA
         private Mesh entity;
         private Screen screen;
         private Camera camera;
-        private Graphics renderer;
+        private Graphics render;
         private ArrayList objects = new ArrayList() { "ball.obj", "ship.obj", "airplane.obj", "teapot.obj", "cat.obj", "fish.obj", "shuttle.obj" };
-
         private Matrix4x4 WorldModel = Matrix4x4.Identity;
+        private enum DRAWMODE { 
+            MESH,
+            RASTR,
+        }
+        private DRAWMODE mode = DRAWMODE.MESH;
 
         public MainWindow()
         {
@@ -37,23 +41,22 @@ namespace CGA
             var eye = new Vector3(0, 0, 1);
             var target = new Vector3(0, 0, 0);
             var up = new Vector3(0, 1, 0);
+            var FOV = float.Pi / 2;
+            var ascpect = 700 / 700;
+            var zNear = 0.1f;
+            var zFar = 10;
             screen = new Screen(700, 700);
-            camera = new Camera(90, 700 / 700, 0.1f, 10, eye, target, up);
+            camera = new Camera(FOV, ascpect, zNear, zFar, eye, target, up);
 
             var scale = 0.05f;
-            
-            /*WorldModel = Matrixes.Movement(target) * Matrixes.Scale(new Vector3(scale, scale, scale)) *
-                         camera.GetMatrix() *
-                         Matrixes.Projection(camera.FOV, camera.Aspect, camera.zNear, camera.zFar) *
-                         screen.GetMatrix();*/
 
             WorldModel = Matrixes.Scale(new Vector3(scale, scale, scale)) *
                          camera.GetMatrix() * 
-                         Matrix4x4.CreatePerspectiveFieldOfView(float.Pi/2,1,0.1f,10) *
+                         Matrix4x4.CreatePerspectiveFieldOfView(FOV,ascpect, zNear, zFar) *
                          screen.GetMatrix();
 
-            renderer = new Graphics(img);
-            renderer.DrawEntityMesh(WorldModel, entity, screen.Width, screen.Height);
+            render = new Graphics(img);
+            render.DrawEntityMesh(WorldModel, entity, screen.Width, screen.Height);
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -105,12 +108,24 @@ namespace CGA
             }
             if (draw)
             {
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-                renderer.DrawEntityMesh(WorldModel, entity, 700, 700);
-                stopwatch.Stop();
-                ms.Content = "Time: " + stopwatch.ElapsedMilliseconds.ToString() + "ms";
+                redraw();
             }
+        }
+
+        public void redraw() {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            switch (mode)
+            { 
+                case DRAWMODE.MESH:
+                    render.DrawEntityMesh(WorldModel, entity, screen.Width, screen.Height);
+                    break;
+                case DRAWMODE.RASTR:
+                    render.Rasterize(WorldModel, entity);
+                    break;
+            }
+            stopwatch.Stop();
+            ms.Content = "Time: " + stopwatch.ElapsedMilliseconds.ToString() + "ms";
         }
 
         public void UpdateWorldModel(Matrix4x4 m)
@@ -129,6 +144,18 @@ namespace CGA
             stopwatch.Start();
             renderer.DrawEntityMesh(WorldModel, entity, 700, 700);
             stopwatch.Stop();*/
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            mode = DRAWMODE.MESH;
+            redraw();
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            mode = DRAWMODE.RASTR;
+            redraw();
         }
     }
 }

@@ -16,12 +16,14 @@
             </Image>
         </Grid>
         <Grid Background="Black" Grid.Column="1">
-            <StackPanel> 
+            <StackPanel>
                 <Label Foreground="White" Name="ms" FontSize="22" Content="Time: " HorizontalAlignment="Center" VerticalAlignment="Top" Width="200"/>
                 <Label Foreground="White" Name="vertexes" FontSize="22" Content="v" HorizontalAlignment="Center" Width="200"/>
                 <Label Foreground="White" Name="faces" FontSize="22" Content="f" HorizontalAlignment="Center" Width="200"/>
-                <ComboBox Name="object_selector" Height="20" Width="130" HorizontalAlignment="Center" Margin="5" VerticalAlignment="Top" SelectionChanged="object_selector_SelectionChanged"/>
+                <ComboBox Visibility="Collapsed" Name="object_selector" Height="20" Width="130" HorizontalAlignment="Center" Margin="5" VerticalAlignment="Top" SelectionChanged="object_selector_SelectionChanged"/>
             </StackPanel>
+            <Button Content="Laba1" HorizontalAlignment="Center" Margin="0,233,0,0" VerticalAlignment="Top" Height="39" Width="180" Click="Button_Click"/>
+            <Button Content="Laba2" HorizontalAlignment="Center" Margin="0,277,0,0" VerticalAlignment="Top" Height="39" Width="180" Click="Button_Click_1"/>
         </Grid>
     </Grid>
 </Window>
