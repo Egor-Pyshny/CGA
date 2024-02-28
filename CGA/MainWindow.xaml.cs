@@ -34,7 +34,7 @@ namespace CGA
         public MainWindow()
         {
             InitializeComponent();
-            entity = Mesh.loadMesh("c.obj");
+            entity = Mesh.loadMesh("shrek.obj");
             object_selector.ItemsSource = objects;
             vertexes.Content = "Vertex: " + entity.getVertexes().Count.ToString();
             faces.Content = "Faces: " + entity.getFaces().Count.ToString();

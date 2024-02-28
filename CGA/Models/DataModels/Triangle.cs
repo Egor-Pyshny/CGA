@@ -96,8 +96,15 @@ namespace CGA.Models.DataModels
 
         public Vector3 NormalVector()
         {
-            Vector3 vertex1 = new Vector3(A.X,A.Y,A.Z);
-            Vector3 vertex2 = new Vector3(B.X, B.Y, B.Z);
+            Vector4 side1 = this.B - this.A;
+            Vector4 side2 = this.C - this.A;
+            Vector3 vertex1 = new Vector3(side1.X, side1.Y, side1.Z);
+            Vector3 vertex2 = new Vector3(side2.X, side2.Y, side2.Z);
+            Vector3 normal = Vector3.Cross(vertex1, vertex2);
+            normal = Vector3.Normalize(normal);
+            return normal;
+
+
             Vector3 vertex3 = new Vector3(C.X, C.Y, C.Z);
             Vector3 vector1 = vertex2 - vertex1;
             Vector3 vector2 = vertex3 - vertex1;

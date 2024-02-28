@@ -38,6 +38,15 @@ namespace CGA.MyGraphics
             return (color << 16) | (color << 8) | (color);
         }
 
+        private static int CalculateLambertian(Vector3 lightPosition, Vector3 normal, float lightIntensity=0.8f)
+        {
+            Vector3 lightDirection = Vector3.Normalize(lightPosition);
+            float dotProduct = Math.Max(Vector3.Dot(normal, lightDirection), 0.0f);
+            float intensity = lightIntensity * dotProduct;
+            byte color = (byte)(255 * intensity);
+            return (color << 16) | (color << 8) | (color);
+        }
+
         public void DrawEntityMesh(Matrix4x4 worldModel, Mesh entity, float width, float height)
         {
             var wBitmap = new WriteableBitmap((int)700, (int)700, dpiX, dpiY, PixelFormats.Bgr32, null);
@@ -201,7 +210,9 @@ namespace CGA.MyGraphics
                     positions[face.g_vertexes[0]],
                     positions[face.g_vertexes[1]],
                     positions[face.g_vertexes[2]]);
-                int fillColor = GetFillColor(Math.Max(0, Vector3.Dot(new Vector3(200,0,-200), triangle.NormalVector())));
+                //int fillColor = GetFillColor(Math.Max(0, Vector3.Dot(new Vector3(200,0,-200), triangle.NormalVector())));
+                int fillColor = CalculateLambertian(new Vector3(0, 0, -40), triangle.NormalVector());
+                //fillColor = RenderColor;
                 MyRasterizeTriangle(bmpInfo, triangle, fillColor);
             });
             wBitmap.AddDirtyRect(new Int32Rect(0, 0, (int)700, (int)700));

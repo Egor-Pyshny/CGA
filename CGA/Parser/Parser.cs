@@ -17,7 +17,7 @@ namespace CGA.Parser
 
         public void parseFile()
         {
-            foreach (string line in System.IO.File.ReadLines(path   ))
+            foreach (string line in System.IO.File.ReadLines(path))
             {
                 string[] values = line.TrimEnd().Split(' ');
                 switch (values[0])
