@@ -9,7 +9,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Objects\airplane.obj" />
+    <None Remove="Objects\ball.obj" />
+    <None Remove="Objects\c.obj" />
+    <None Remove="Objects\cat.obj" />
+    <None Remove="Objects\cube.obj" />
+    <None Remove="Objects\ship.obj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Objects\ball.obj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Objects\airplane.obj" />
+    <Resource Include="Objects\c.obj" />
+    <Resource Include="Objects\cat.obj" />
+    <Resource Include="Objects\cube.obj" />
+    <Resource Include="Objects\ship.obj" />
   </ItemGroup>
 
 </Project>

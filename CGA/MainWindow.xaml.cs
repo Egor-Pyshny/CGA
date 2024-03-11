@@ -35,7 +35,7 @@ namespace CGA
         {
             InitializeComponent();
 
-            Reader = ObjReader.GetObjReader("c.obj");
+            Reader = ObjReader.GetObjReader("Objects\\c.obj");
             Vertexes = Reader.Vertices.ToList();
             Normales = Reader.VertexNormals.ToList();
             vertexes.Content = $"Vertexes: {Vertexes.Count}";
