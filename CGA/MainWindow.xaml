@@ -4,26 +4,23 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CGA"
-        mc:Ignorable="d" Width="900" Height="715"
-        Title="MainWindow" KeyDown="Window_KeyDown">
+        mc:Ignorable="d" Width="1200" Height="1000"
+        Title="MainWindow">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="1000"/>
             <ColumnDefinition Width="200"/>
         </Grid.ColumnDefinitions>
         <Grid>
-            <Image Width="700" Height="700" x:Name="img">
-            </Image>
+            <Image Width="1000" Height="1000" x:Name="img"/>
         </Grid>
         <Grid Background="Black" Grid.Column="1">
             <StackPanel>
                 <Label Foreground="White" Name="ms" FontSize="22" Content="Time: " HorizontalAlignment="Center" VerticalAlignment="Top" Width="200"/>
                 <Label Foreground="White" Name="vertexes" FontSize="22" Content="v" HorizontalAlignment="Center" Width="200"/>
                 <Label Foreground="White" Name="faces" FontSize="22" Content="f" HorizontalAlignment="Center" Width="200"/>
-                <ComboBox Visibility="Collapsed" Name="object_selector" Height="20" Width="130" HorizontalAlignment="Center" Margin="5" VerticalAlignment="Top" SelectionChanged="object_selector_SelectionChanged"/>
+                <ComboBox Visibility="Collapsed" Name="object_selector" Height="20" Width="130" HorizontalAlignment="Center" Margin="5" VerticalAlignment="Top"/>
             </StackPanel>
-            <Button Content="Laba1" HorizontalAlignment="Center" Margin="0,233,0,0" VerticalAlignment="Top" Height="39" Width="180" Click="Button_Click"/>
-            <Button Content="Laba2" HorizontalAlignment="Center" Margin="0,277,0,0" VerticalAlignment="Top" Height="39" Width="180" Click="Button_Click_1"/>
         </Grid>
     </Grid>
 </Window>

@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
 
-namespace CGA.Models.DataModels
+namespace ObjVisualizer.Models.DataModels
 {
-    public readonly struct LineSegment(Vector4 left, Vector4 right)
+    internal readonly struct LineSegment(Vector3 left, Vector3 right)
     {
-        public readonly Vector4 Left = left;
-        public readonly Vector4 Right = right;
+        public readonly Vector3 Left = left;
+        public readonly Vector3 Right = right;
     }
 }

@@ -1,161 +1,267 @@
-﻿using CGA.Models.DataModels;
-using CGA.Models.VisualModels;
-using CGA.Parser;
-using System.Windows;
-using System.Windows.Media.Imaging;
-using CGA.MyGraphics;
-using System.Numerics;
-using System.Windows.Media.Media3D;
-using Camera = CGA.Models.VisualModels.Camera;
-using CGA.MathModule;
-using System.Windows.Input;
+﻿using ObjVisualizer.Graphics;
+using ObjVisualizer.MathModule;
+using ObjVisualizer.Models.VisualModels;
+using ObjVisualizer.Parser;
+using System.Collections.Generic;
+using System;
 using System.Diagnostics;
-using System.Collections;
+using System.Numerics;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Color = System.Drawing.Color;
+using System.Linq;
 
 namespace CGA
 {
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
     public partial class MainWindow : Window
     {
-        private WriteableBitmap wBitmap;
-        private OBJParser parser;
-        private Mesh entity;
-        private Screen screen;
-        private Camera camera;
-        private Graphics render;
-        private ArrayList objects = new ArrayList() { "ball.obj", "ship.obj", "airplane.obj", "teapot.obj", "cat.obj", "fish.obj", "shuttle.obj" };
-        private Matrix4x4 WorldModel = Matrix4x4.Identity;
-        private enum DRAWMODE { 
-            MESH,
-            RASTR,
-        }
-        private DRAWMODE mode = DRAWMODE.MESH;
+        private readonly Scene MainScene;
+        private readonly Image Image;
 
+        private readonly IObjReader Reader;
+
+        private int WindowWidth;
+        private int WindowHeight;
+        private List<Vector4> Vertexes;
+        private List<Vector3> Normales;
         public MainWindow()
         {
             InitializeComponent();
-            entity = Mesh.loadMesh("shrek.obj");
-            object_selector.ItemsSource = objects;
-            vertexes.Content = "Vertex: " + entity.getVertexes().Count.ToString();
-            faces.Content = "Faces: " + entity.getFaces().Count.ToString();
-            var eye = new Vector3(0, 0, 1);
-            var target = new Vector3(0, 0, 0);
-            var up = new Vector3(0, 1, 0);
-            var FOV = float.Pi / 2;
-            var ascpect = 700 / 700;
-            var zNear = 0.1f;
-            var zFar = 10;
-            screen = new Screen(700, 700);
-            camera = new Camera(FOV, ascpect, zNear, zFar, eye, target, up);
 
-            var scale = 0.05f;
+            Reader = ObjReader.GetObjReader("c.obj");
+            Vertexes = Reader.Vertices.ToList();
+            Normales = Reader.VertexNormals.ToList();
+            vertexes.Content = $"Vertexes: {Vertexes.Count}";
+            faces.Content = $"Faces: {Reader.Faces.Count()}";
 
-            WorldModel = Matrixes.Scale(new Vector3(scale, scale, scale)) *
-                         camera.GetMatrix() * 
-                         Matrix4x4.CreatePerspectiveFieldOfView(FOV,ascpect, zNear, zFar) *
-                         screen.GetMatrix();
+            PreviewMouseWheel += MainWindow_PreviewMouseWheel;
+            PreviewKeyDown += MainWindow_PreviewKeyDown;
 
-            render = new Graphics(img);
-            render.DrawEntityMesh(WorldModel, entity, screen.Width, screen.Height);
+            WindowWidth = (int)this.Width;
+            WindowHeight = (int)this.Height;
+
+            Image = this.img;
+
+            MainScene = Scene.GetScene();
+            MainScene.Stage = Scene.LabaStage.Laba1;
+
+            MainScene.Camera = new Camera(new Vector3(0, 0f, 0f), new Vector3(0, 1, 0), new Vector3(0, 0, 1),
+                WindowWidth / (float)WindowHeight, 70.0f * ((float)Math.PI / 180.0f), 10.0f, 0.1f);
+
+            MainScene.Camera.Eye = new Vector3(
+                        MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta),
+                        MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
+                        MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta));
+            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.8f);
+            MainScene.ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(MainScene.Camera));
+            MainScene.ProjectionMatrix = Matrix4x4.Transpose(MatrixOperator.GetProjectionMatrix(MainScene.Camera));
+            MainScene.ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(WindowWidth, WindowHeight));
+
+            Redraw();
         }
 
-        private void Window_KeyDown(object sender, KeyEventArgs e)
+        private void Redraw()
         {
-            bool draw = true;
+            var writableBitmap = new WriteableBitmap((int)img.Width, (int)img.Height, 96, 96, PixelFormats.Bgr24, null);
+            var rect = new Int32Rect(0, 0, (int)img.Width, (int)img.Height);
+            IntPtr buffer = writableBitmap.BackBuffer;
+            int stride = writableBitmap.BackBufferStride;
+
+            MainScene.Camera.Eye = new Vector3(
+                    MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraPhi) *
+                    (float)Math.Sin(MainScene.Camera.CameraZeta),
+                    MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
+                    MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) *
+                    (float)Math.Sin(MainScene.Camera.CameraZeta));
+            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.8f);
+
+            MainScene.UpdateViewMatix();
+
+            var drawer = new Drawer((int)img.Width, (int)img.Height, buffer, stride);
+
+            writableBitmap.Lock();
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            if (MainScene.Stage == Scene.LabaStage.Laba1)
+            {
+                DrawLab1(buffer, drawer, stride);
+            }
+            else if (MainScene.Stage == Scene.LabaStage.Laba2)
+            {
+                DrawLab2(buffer, drawer);
+            }
+            writableBitmap.AddDirtyRect(rect);
+            writableBitmap.Unlock();
+            stopwatch.Stop();
+            ms.Content = $"Time: {stopwatch.ElapsedMilliseconds}ms";
+            MainScene.ModelMatrix = Matrix4x4.Transpose(MatrixOperator.GetModelMatrix());
+            MainScene.ChangeStatus = false;
+
+            Image.Source = writableBitmap;
+        }
+
+        private void DrawLab1(IntPtr buffer, Drawer drawer, int stride)
+        {
+            unsafe
+            {
+                byte* pixels = (byte*)buffer.ToPointer();
+                Parallel.ForEach(Reader.Faces, face =>
+                {
+                    var FaceVertexes = face.VertexIds.ToList();
+                    var FaceNormales = face.NormalIds.ToList();
+                    var ZeroVertext = Vertexes[FaceVertexes[0] - 1];
+
+                    Vector3 PoliNormal = Vector3.Zero;
+                    if (MainScene.Stage == Scene.LabaStage.Laba1)
+                    {
+                        Vector4 TempVertexI = MainScene.GetTransformedVertex(Vertexes[FaceVertexes[0] - 1]);
+                        Vector4 TempVertexJ = MainScene.GetTransformedVertex(Vertexes[FaceVertexes.Last() - 1]);
+
+                        if ((int)TempVertexI.X > 0 && (int)TempVertexJ.X > 0 &&
+                                    (int)TempVertexI.Y > 0 && (int)TempVertexJ.Y > 0 &&
+                                    (int)TempVertexI.X < WindowWidth && (int)TempVertexJ.X < WindowWidth &&
+                                    (int)TempVertexI.Y < WindowHeight && (int)TempVertexJ.Y < WindowHeight)
+                        {
+                            drawer.DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
+                                pixels, stride);
+                        }
+
+                        for (int i = 0; i < FaceVertexes.Count - 1; i++)
+                        {
+                            TempVertexI = MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]);
+                            TempVertexJ = MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i + 1] - 1]);
+
+                            if ((int)TempVertexI.X > 0 && (int)TempVertexJ.X > 0 &&
+                                (int)TempVertexI.Y > 0 && (int)TempVertexJ.Y > 0 &&
+                                (int)TempVertexI.X < WindowWidth && (int)TempVertexJ.X < WindowWidth &&
+                                (int)TempVertexI.Y < WindowHeight && (int)TempVertexJ.Y < WindowHeight)
+                            {
+                                drawer.DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
+                                    pixels, stride);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        private void DrawLab2(IntPtr buffer, Drawer drawer)
+        {
+            unsafe
+            {
+                byte* pixels = (byte*)buffer.ToPointer();
+                Parallel.ForEach(Reader.Faces, face =>
+                {
+                    var FaceVertexes = face.VertexIds.ToList();
+                    var FaceNormales = face.NormalIds.ToList();
+                    var ZeroVertext = Vertexes[FaceVertexes[0] - 1];
+                    Vector3 PoliNormal = Vector3.Zero;
+                    for (int i = 0; i < FaceNormales.Count; i++)
+                    {
+                        PoliNormal += Normales[FaceNormales[i] - 1];
+                    }
+                    if (MainScene.Stage == Scene.LabaStage.Laba2)
+                    {
+                        if (Vector3.Dot(PoliNormal / FaceNormales.Count, -new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                        Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z) + MainScene.Camera.Eye) > 0)
+                        {
+                            var triangle = Enumerable.Range(0, FaceVertexes.Count)
+                                .Select(i => MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]))
+                                .ToList();
+                            float light = MainScene.Light.CalculateLight(new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                                Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z), PoliNormal);
+                            drawer.Rasterize(triangle,
+                                Color.FromArgb(
+                                    (byte)(light * 0 > 255 ? 0 : light * 0),
+                                    (byte)(light * 255 > 255 ? 255 : light * 255),
+                                    (byte)(light * 0 > 255 ? 0 : light * 0)));
+                        }
+                    }
+                });
+            }
+        }
+
+        private void MainWindow_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            MainScene.Camera.Radius += -e.Delta / 50;
+            if (MainScene.Camera.Radius < 0.01f)
+                MainScene.Camera.Radius = 0.01f;
+            if (MainScene.Camera.Radius > 5 * MainScene.Camera.Radius)
+                MainScene.Camera.Radius = 5 * MainScene.Camera.Radius;
+            e.Handled = true;
+            Redraw();
+        }
+
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            bool redraw = true;
             switch (e.Key)
             {
-                case Key.D:
-                    UpdateWorldModel(Matrixes.RotateZ(5));
+                case Key.D1:
+                    MainScene.Stage = Scene.LabaStage.Laba1;
+                    break;
+                case Key.D2:
+                    MainScene.Stage = Scene.LabaStage.Laba2;
                     break;
                 case Key.A:
-                    UpdateWorldModel(Matrixes.RotateZ(-5));
+                    MainScene.Camera.Target += new Vector3(-1f, 0, 0);
                     break;
-                case Key.W:
-                    UpdateWorldModel(Matrixes.RotateX(5));
+                case Key.D:
+                    MainScene.Camera.Target += new Vector3(1f, 0, 0);
                     break;
                 case Key.S:
-                    UpdateWorldModel(Matrixes.RotateX(-5));
+                    MainScene.Camera.Target += new Vector3(0, -1f, 0);
                     break;
-                case Key.Q:
-                    UpdateWorldModel(Matrixes.RotateY(5));
-                    break;
-                case Key.E:
-                    UpdateWorldModel(Matrixes.RotateY(-5));
-                    break;
-                case Key.Add or Key.OemPlus:
-                    var scale = 1.1f;
-                    UpdateWorldModel(Matrixes.Scale(new Vector3(scale, scale, scale)));
-                    break;
-                case Key.Subtract or Key.OemMinus:
-                    scale = 0.9f;
-                    UpdateWorldModel(Matrixes.Scale(new Vector3(scale, scale, scale)));
-                    break;
-                case Key.Left:
-                    UpdateWorldModel(Matrixes.Movement(new Vector3(0.3f, 0, 0)));
-                    break;
-                case Key.Right:
-                    UpdateWorldModel(Matrixes.Movement(new Vector3(-0.3f, 0, 0)));
+                case Key.W:
+                    MainScene.Camera.Target += new Vector3(0, 1f, 0);
                     break;
                 case Key.Up:
-                    UpdateWorldModel(Matrixes.Movement(new Vector3(0, 0.3f, 0)));
-                    break;
+                    {
+                        float yoffset = 17;
+                        MainScene.Camera.CameraZeta += yoffset * 0.005f;
+                        if (MainScene.Camera.CameraZeta > Math.PI)
+                            MainScene.Camera.CameraZeta = (float)Math.PI - 0.01f;
+                        if (MainScene.Camera.CameraZeta < 0)
+                            MainScene.Camera.CameraZeta = 0.01f;
+                        break;
+                    }
                 case Key.Down:
-                    UpdateWorldModel(Matrixes.Movement(new Vector3(0, -0.3f, 0)));
-                    break;
+                    {
+                        float yoffset = -17;
+                        MainScene.Camera.CameraZeta += yoffset * 0.005f;
+                        if (MainScene.Camera.CameraZeta > Math.PI)
+                            MainScene.Camera.CameraZeta = (float)Math.PI - 0.01f;
+                        if (MainScene.Camera.CameraZeta < 0)
+                            MainScene.Camera.CameraZeta = 0.01f;
+                        break;
+                    }
+                case Key.Right:
+                    {
+                        float xoffset = -17;
+                        MainScene.Camera.CameraPhi += xoffset * 0.005f;
+                        break;
+                    }
+                case Key.Left:
+                    {
+                        float xoffset = 17;
+                        MainScene.Camera.CameraPhi += xoffset * 0.005f;
+                        break;
+                    }
                 default:
-                    draw = false;
+                    redraw = false;
                     break;
             }
-            if (draw)
+            if (redraw)
             {
-                redraw();
+                Redraw();
             }
-        }
-
-        public void redraw() {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            switch (mode)
-            { 
-                case DRAWMODE.MESH:
-                    render.DrawEntityMesh(WorldModel, entity, screen.Width, screen.Height);
-                    break;
-                case DRAWMODE.RASTR:
-                    render.Rasterize(WorldModel, entity);
-                    break;
-            }
-            stopwatch.Stop();
-            ms.Content = "Time: " + stopwatch.ElapsedMilliseconds.ToString() + "ms";
-        }
-
-        public void UpdateWorldModel(Matrix4x4 m)
-        {
-            WorldModel = m * WorldModel;
-        }
-
-        private void object_selector_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            /*string path = (sender as ComboBox).SelectedValue.ToString();
-            entity = Mesh.loadMesh(path);
-            object_selector.ItemsSource = objects;
-            vertexes.Content = "Vertex: " + entity.getVertexes().Count.ToString();
-            faces.Content = "Faces: " + entity.getFaces().Count.ToString();
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            renderer.DrawEntityMesh(WorldModel, entity, 700, 700);
-            stopwatch.Stop();*/
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            mode = DRAWMODE.MESH;
-            redraw();
-        }
-
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            mode = DRAWMODE.RASTR;
-            redraw();
         }
     }
 }
