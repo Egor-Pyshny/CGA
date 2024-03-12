@@ -32,12 +32,15 @@ namespace CGA
         private int WindowHeight;
         private List<Vector4> Vertexes;
         private List<Vector3> Normales;
-
+        private float x;
+        private float y;
+        private float z;
+        bool follow = true; 
         public MainWindow()
         {
             InitializeComponent();
 
-            Reader = ObjReader.GetObjReader("shovel_low.obj");
+            Reader = ObjReader.GetObjReader("c.obj");
             Vertexes = Reader.Vertices.ToList();
             Normales = Reader.VertexNormals.ToList();
             vertexes.Content = $"Vertexes: {Vertexes.Count}";
@@ -61,7 +64,10 @@ namespace CGA
                         MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta),
                         MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
                         MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta));
-            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.6f, false, false);
+            x = MainScene.Camera.Eye.X;
+            y = MainScene.Camera.Eye.Y;
+            z = MainScene.Camera.Eye.Z;
+            MainScene.Light = new PointLight(x, y, z, 0.6f, false, false);
             MainScene.ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(MainScene.Camera));
             MainScene.ProjectionMatrix = Matrix4x4.Transpose(MatrixOperator.GetProjectionMatrix(MainScene.Camera));
             MainScene.ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(WindowWidth, WindowHeight));
@@ -82,7 +88,7 @@ namespace CGA
                     MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
                     MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) *
                     (float)Math.Sin(MainScene.Camera.CameraZeta));
-            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.6f, MainScene.Ambient, MainScene.Specular);
+            MainScene.Light = new PointLight(x, y, z, 0.6f, MainScene.Ambient, MainScene.Specular);
 
             MainScene.UpdateViewMatix();
 
@@ -253,6 +259,14 @@ namespace CGA
                 case Key.A:
                     MainScene.Camera.Target += new Vector3(-1f, 0, 0);
                     break;
+                case Key.R:
+                    x = MainScene.Camera.Eye.X;
+                    y = MainScene.Camera.Eye.Y;
+                    z = MainScene.Camera.Eye.Z;
+                    break;
+                case Key.F:
+                    follow = !follow;
+                    break;
                 case Key.D:
                     MainScene.Camera.Target += new Vector3(1f, 0, 0);
                     break;
@@ -261,6 +275,24 @@ namespace CGA
                     break;
                 case Key.W:
                     MainScene.Camera.Target += new Vector3(0, 1f, 0);
+                    break;
+                case Key.NumPad8:
+                    y += 0.5f;
+                    break;
+                case Key.NumPad4:
+                    x -= 0.5f;
+                    break;
+                case Key.NumPad2:
+                    y -= 0.5f;
+                    break;
+                case Key.NumPad6:
+                    x += 0.5f;
+                    break;
+                case Key.NumPad9:
+                    z += 0.5f;
+                    break;
+                case Key.NumPad3:
+                    z -= 0.5f;
                     break;
                 case Key.L:
                     MainScene.Specular = !MainScene.Specular;
@@ -301,6 +333,11 @@ namespace CGA
                 default:
                     redraw = false;
                     break;
+            }
+            if (follow) {
+                x = MainScene.Camera.Eye.X;
+                y = MainScene.Camera.Eye.Y;
+                z = MainScene.Camera.Eye.Z;
             }
             if (redraw)
             {
