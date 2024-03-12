@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using ObjVisualizer.GraphicsComponents;
 using ObjVisualizer.MathModule;
 
 namespace ObjVisualizer.Models.VisualModels
@@ -17,6 +18,12 @@ namespace ObjVisualizer.Models.VisualModels
         private static Scene? Instance;
 
         public PointLight Light;
+
+        public bool Ambient { get => _ambient; set { _ambient = value; } }
+        public bool Specular { get => _specular; set { _specular = value; } }
+
+        private bool _ambient = true;
+        private bool _specular = true;
 
         public LabaStage Stage;
 

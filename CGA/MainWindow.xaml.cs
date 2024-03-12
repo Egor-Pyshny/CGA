@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Color = System.Drawing.Color;
 using System.Linq;
+using ObjVisualizer.GraphicsComponents;
 
 namespace CGA
 {
@@ -31,11 +32,12 @@ namespace CGA
         private int WindowHeight;
         private List<Vector4> Vertexes;
         private List<Vector3> Normales;
+
         public MainWindow()
         {
             InitializeComponent();
 
-            Reader = ObjReader.GetObjReader("Objects\\c.obj");
+            Reader = ObjReader.GetObjReader("shovel_low.obj");
             Vertexes = Reader.Vertices.ToList();
             Normales = Reader.VertexNormals.ToList();
             vertexes.Content = $"Vertexes: {Vertexes.Count}";
@@ -59,7 +61,7 @@ namespace CGA
                         MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta),
                         MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
                         MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) * (float)Math.Sin(MainScene.Camera.CameraZeta));
-            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.8f);
+            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.6f, false, false);
             MainScene.ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(MainScene.Camera));
             MainScene.ProjectionMatrix = Matrix4x4.Transpose(MatrixOperator.GetProjectionMatrix(MainScene.Camera));
             MainScene.ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(WindowWidth, WindowHeight));
@@ -80,7 +82,7 @@ namespace CGA
                     MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
                     MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) *
                     (float)Math.Sin(MainScene.Camera.CameraZeta));
-            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.8f);
+            MainScene.Light = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.6f, MainScene.Ambient, MainScene.Specular);
 
             MainScene.UpdateViewMatix();
 
@@ -96,6 +98,10 @@ namespace CGA
             else if (MainScene.Stage == Scene.LabaStage.Laba2)
             {
                 DrawLab2(buffer, drawer);
+            }
+            else if (MainScene.Stage == Scene.LabaStage.Laba3)
+            {
+                DrawLab3(buffer, drawer);
             }
             writableBitmap.AddDirtyRect(rect);
             writableBitmap.Unlock();
@@ -175,17 +181,48 @@ namespace CGA
                             var triangle = Enumerable.Range(0, FaceVertexes.Count)
                                 .Select(i => MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]))
                                 .ToList();
-                            float light = MainScene.Light.CalculateLight(new Vector3(Vertexes[FaceVertexes[0] - 1].X,
-                                Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z), PoliNormal);
+                            float light = MainScene.Light.CalculateLightLaba2(new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                                        Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z), PoliNormal);
                             drawer.Rasterize(triangle,
                                 Color.FromArgb(
-                                    (byte)(light * 0 > 255 ? 0 : light * 0),
-                                    (byte)(light * 255 > 255 ? 255 : light * 255),
-                                    (byte)(light * 0 > 255 ? 0 : light * 0)));
+                                    (byte)(light * 0 > 255 ? 0 : light * 205),
+                                    (byte)(light * 255 > 255 ? 255 : light * 205),
+                                    (byte)(light * 0 > 255 ? 0 : light * 205)));
                         }
                     }
                 });
             }
+        }
+
+        private void DrawLab3(IntPtr buffer, Drawer drawer) 
+        {
+            DrawLab2(buffer, drawer);
+            Parallel.ForEach(Reader.Faces, face =>
+            //foreach (var face in Reader.Faces)
+            {
+                var FaceVertexes = face.VertexIds.ToList();
+                var FaceNormales = face.NormalIds.ToList();
+                var ZeroVertext = Vertexes[FaceVertexes[0] - 1];
+                Vector3 PoliNormal = Vector3.Zero;
+                for (int i = 0; i < FaceNormales.Count; i++)
+                {
+                    PoliNormal += Normales[FaceNormales[i] - 1];
+                }
+                if (Vector3.Dot(PoliNormal / FaceNormales.Count, -new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                              Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z) + MainScene.Camera.Eye) > 0)
+                {
+                    var triangleVertexes = Enumerable.Range(0, FaceVertexes.Count)
+                       .Select(i => MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]))
+                       .ToList();
+                    var triangleNormales = Enumerable.Range(0, FaceVertexes.Count)
+                        .Select(i => Normales[FaceNormales[i] - 1])
+                        .ToList();
+                    var originalVertexes = Enumerable.Range(0, FaceVertexes.Count)
+                       .Select(i => Vertexes[FaceVertexes[i] - 1])
+                       .ToList();
+                    drawer.Rasterize(triangleVertexes, triangleNormales, originalVertexes, MainScene);
+                }
+            });
         }
 
         private void MainWindow_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -210,6 +247,9 @@ namespace CGA
                 case Key.D2:
                     MainScene.Stage = Scene.LabaStage.Laba2;
                     break;
+                case Key.D3:
+                    MainScene.Stage = Scene.LabaStage.Laba3;
+                    break;
                 case Key.A:
                     MainScene.Camera.Target += new Vector3(-1f, 0, 0);
                     break;
@@ -221,6 +261,10 @@ namespace CGA
                     break;
                 case Key.W:
                     MainScene.Camera.Target += new Vector3(0, 1f, 0);
+                    break;
+                case Key.L:
+                    MainScene.Specular = !MainScene.Specular;
+                    MainScene.Ambient = !MainScene.Ambient;
                     break;
                 case Key.Up:
                     {
