@@ -232,6 +232,7 @@ namespace ObjVisualizer.Graphics
             {
                 Color baseColor = Color.White;
                 byte* data = (byte*)Buffer.ToPointer();
+                //C сверху, A снизу
                 if (triangle.B.Y < triangle.A.Y)
                 {
                     (triangle.B, triangle.A) = (triangle.A, triangle.B);
@@ -262,6 +263,7 @@ namespace ObjVisualizer.Graphics
                 float ZInvB = 1 / triangle.ViewB.W;
                 float ZInvC = 1 / triangle.ViewC.W;
 
+                //интерполируем между вершинами
                 (var x02, var x012) = TraingleInterpolation(YA, triangle.A.X, YB, triangle.B.X, YC, triangle.C.X);
 
                 (var rx02, var rx012) = TraingleInterpolation(YA, triangle.RealA.X, YB, triangle.RealB.X, YC, triangle.RealC.X);
@@ -285,7 +287,8 @@ namespace ObjVisualizer.Graphics
 
                 List<float> rx_right, ry_right, rz_right;
                 List<float> rx_left, ry_left, rz_left;
-
+                
+                //проверка какой массив точек правый а какой левый
                 if ((int)float.Round(x02[m]) <= (int)float.Round(x012[m]))
                 {
                     (x_left, x_right) = (x02, x012);
@@ -312,6 +315,7 @@ namespace ObjVisualizer.Graphics
                     (rz_left, rz_right) = (rz012, rz02);
 
                 }
+                //смещение для треугольника, который не полностью входит в экран
                 int YDiffTop = 0;
                 int YDiffTopI = 0;
                 int TopY = (int)float.Round(triangle.A.Y);
@@ -326,79 +330,82 @@ namespace ObjVisualizer.Graphics
                     if (y < 0 || y >= _height)
                         continue;
                     var index = (y - TopY + YDiffTop);
+                    
+                    var xl = (int)float.Round(x_left[index]);
+                    var xr = (int)float.Round(x_right[index]);
+
+                    (var rxl, var rxr) = (rx_left[index], rx_right[index]);
+                    (var ryl, var ryr) = (ry_left[index], ry_right[index]);
+                    (var rzl, var rzr) = (rz_left[index], rz_right[index]);
+
+                    //viewZ
+                    (var vzl, var vzr) = (vz_left[index], vz_right[index]);
+
+                    (var ul, var ur) = (u_left[index], u_right[index]);
+                    (var vl, var vr) = (v_left[index], v_right[index]);
+                    if (xl == xr)
+                        continue;
+
+                    //x0+k*t смещение точки при интеполяции
+                    float ku, kv, kvz, krx, kry, krz;
+                    if (xl == xr)
                     {
-                        var xl = (int)float.Round(x_left[index]);
-                        var xr = (int)float.Round(x_right[index]);
-
-                        (var rxl, var rxr) = (rx_left[index], rx_right[index]);
-                        (var ryl, var ryr) = (ry_left[index], ry_right[index]);
-                        (var rzl, var rzr) = (rz_left[index], rz_right[index]);
-
-                        (var vzl, var vzr) = (vz_left[index], vz_right[index]);
-
-                        (var ul, var ur) = (u_left[index], u_right[index]);
-                        (var vl, var vr) = (v_left[index], v_right[index]);
-                        if (xl == xr)
-                            continue;
-
-                        float ku, kv, kvz, krx, kry, krz;
-                        if (xl == xr)
-                        {
-                            ku = ul;
-                            kv = vl;
-                            kvz = vzl;
-                            krx = rxl;
-                            kry = ryl;
-                            krz = rzl;
-                        }
-                        else
-                        {
-                            ku = (ul - ur) / (xl - xr);
-                            kv = (vl - vr) / (xl - xr);
-                            kvz = (vzl - vzr) / (xl - xr);
-                            krx = (rxl - rxr) / (xl - xr);
-                            kry = (ryl - ryr) / (xl - xr);
-                            krz = (rzl - rzr) / (xl - xr);
-                        }
-
-                        for (int x = xl; x <= xr; x++)
-                        {
-                            if (x < 0 || x >= _width)
-                                continue;
-                            var z = (rzl + krz * (x - xl));
-                            var vz = (vzl + kvz * (x - xl));
-
-                            if (vz > ZBuffer[y, x])
-                            {
-
-                                ZBuffer[y, x] = vz;
-                                byte* pixelPtr = data + y * _stride + x * 3;
-                                var vertex = new Vector3(rxl + krx * (x - xl), ryl + kry * (x - xl), rzl + krz * (x - xl));
-                                var tx = float.Abs(((ul + ku * (x - xl)) / vz) * scene.GraphicsObjects.KdMap.Width) % scene.GraphicsObjects.KdMap.Width;
-                                var ty = float.Abs((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.KdMap.Height) % scene.GraphicsObjects.KdMap.Height;
-                                Vector3 newColor = GetNewTextel(tx, ty, scene.GraphicsObjects.KdMap);
-                                Vector3 lightResult;
-                                if (scene.GraphicsObjects.NormMap != null)
-                                {
-                                    int textureByteNorm = (int)((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.NormMap.Height) * scene.GraphicsObjects.NormMap.Stride + (int)((ul + ku * (x - xl)) / vz * scene.GraphicsObjects.NormMap.Width) * scene.GraphicsObjects.NormMap.ColorSize / 8;
-                                    int textureByteMrao = (int)((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.MraoMap.Height) * scene.GraphicsObjects.MraoMap.Stride + (int)((ul + ku * (x - xl)) / vz * scene.GraphicsObjects.MraoMap.Width) * scene.GraphicsObjects.MraoMap.ColorSize / 8;
-                                    Vector3 normal = new Vector3((scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 2] / 255.0f) * 2 - 1, (scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 1] / 255.0f) * 2 - 1, (scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 0] / 255.0f) * 2 - 1);
-                                    lightResult = new(0, 0, 0);
-                                    for (int i = 0; i < scene.Light.Count; i++)
-                                        lightResult += scene.Light[i].CalculateLightWithMaps(vertex, normal, scene.Camera.Eye, scene.GraphicsObjects.MraoMap.MapData[textureByteMrao + 0]);
-                                }
-                                else
-                                {
-                                    lightResult = new(1f, 1f, 1f);
-                                }
-
-                                *pixelPtr++ = (byte)(newColor.X * (lightResult.X > 1.0 ? 1 : lightResult.X));
-                                *pixelPtr++ = (byte)(newColor.Y * (lightResult.Y > 1 ? 1 : lightResult.Y));
-                                *pixelPtr = (byte)(newColor.Z * (lightResult.Z > 1 ? 1 : lightResult.Z));
-                            }
-
-                        }
+                        ku = ul;
+                        kv = vl;
+                        kvz = vzl;
+                        krx = rxl;
+                        kry = ryl;
+                        krz = rzl;
                     }
+                    else
+                    {
+                        ku = (ul - ur) / (xl - xr);
+                        kv = (vl - vr) / (xl - xr);
+                        kvz = (vzl - vzr) / (xl - xr);
+                        krx = (rxl - rxr) / (xl - xr);
+                        kry = (ryl - ryr) / (xl - xr);
+                        krz = (rzl - rzr) / (xl - xr);
+                    }
+
+                    for (int x = xl; x <= xr; x++)
+                    {
+                        if (x < 0 || x >= _width)
+                            continue;
+                        var z = (rzl + krz * (x - xl));
+                        var vz = (vzl + kvz * (x - xl));
+
+                        if (vz > ZBuffer[y, x])
+                        {
+                            ZBuffer[y, x] = vz;
+                            byte* pixelPtr = data + y * _stride + x * 3;
+                            var vertex = new Vector3(rxl + krx * (x - xl), ryl + kry * (x - xl), rzl + krz * (x - xl));
+                            var tx = float.Abs(((ul + ku * (x - xl)) / vz) * scene.GraphicsObjects.KdMap.Width) % scene.GraphicsObjects.KdMap.Width;
+                            var ty = float.Abs((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.KdMap.Height) % scene.GraphicsObjects.KdMap.Height;
+                            Vector3 newColor = GetNewTextel(tx, ty, scene.GraphicsObjects.KdMap);
+                            Vector3 lightResult;
+                            /*if (scene.GraphicsObjects.NormMap != null)
+                            {
+                                int textureByteNorm = (int)((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.NormMap.Height) * scene.GraphicsObjects.NormMap.Stride + (int)((ul + ku * (x - xl)) / vz * scene.GraphicsObjects.NormMap.Width) * scene.GraphicsObjects.NormMap.ColorSize / 8;
+                                int textureByteMrao = (int)((1 - (vl + kv * (x - xl)) / vz) * scene.GraphicsObjects.MraoMap.Height) * scene.GraphicsObjects.MraoMap.Stride + (int)((ul + ku * (x - xl)) / vz * scene.GraphicsObjects.MraoMap.Width) * scene.GraphicsObjects.MraoMap.ColorSize / 8;
+                                Vector3 normal = new Vector3((scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 2] / 255.0f) * 2 - 1, (scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 1] / 255.0f) * 2 - 1, (scene.GraphicsObjects.NormMap.MapData[textureByteNorm + 0] / 255.0f) * 2 - 1);
+                                lightResult = new(0, 0, 0);
+                                for (int i = 0; i < scene.Light.Count; i++)
+                                {
+                                    lightResult += scene.Light[i].CalculateLightWithMaps(vertex, normal, scene.Camera.Eye, scene.GraphicsObjects.MraoMap.MapData[textureByteMrao + 0]);
+                                }
+                            }
+                            else
+                            {
+                                lightResult = new(1f, 1f, 1f);
+                            }*/
+                            lightResult = new(1f, 1f, 1f);
+                            *pixelPtr++ = (byte)(newColor.X * (lightResult.X > 1.0 ? 1 : lightResult.X));
+                            *pixelPtr++ = (byte)(newColor.Y * (lightResult.Y > 1 ? 1 : lightResult.Y));
+                            *pixelPtr = (byte)(newColor.Z * (lightResult.Z > 1 ? 1 : lightResult.Z));
+                        }
+
+                    }
+                    
                 }
             }
         }
