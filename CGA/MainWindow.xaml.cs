@@ -1,7 +1,6 @@
 ﻿using ObjVisualizer.Graphics;
 using ObjVisualizer.MathModule;
 using ObjVisualizer.Models.VisualModels;
-using ObjVisualizer.Parser;
 using System.Collections.Generic;
 using System;
 using System.Diagnostics;
@@ -15,6 +14,9 @@ using System.Windows.Media.Imaging;
 using Color = System.Drawing.Color;
 using System.Linq;
 using ObjVisualizer.GraphicsComponents;
+using static ObjVisualizer.Models.VisualModels.Scene;
+using ObjVisualizer.Parser.Mtl;
+using ObjVisualizer.Parser.Obj;
 
 namespace CGA
 {
@@ -25,8 +27,9 @@ namespace CGA
     {
         private readonly Scene MainScene;
         private readonly Image Image;
-
+        private Drawer drawer;
         private readonly IObjReader Reader;
+        private readonly IMtlParser _mtlParser = new MtlParser("Box.mtl");
 
         private int WindowWidth;
         private int WindowHeight;
@@ -40,7 +43,7 @@ namespace CGA
         {
             InitializeComponent();
 
-            Reader = ObjReader.GetObjReader("c.obj");
+            Reader = ObjReader.GetObjReader("Box.obj");
             Vertexes = Reader.Vertices.ToList();
             Normales = Reader.VertexNormals.ToList();
             vertexes.Content = $"Vertexes: {Vertexes.Count}";
@@ -55,6 +58,8 @@ namespace CGA
             Image = this.img;
 
             MainScene = Scene.GetScene();
+            MainScene.GraphicsObjects = new GraphicsObject(_mtlParser.GetMapKdBytes(), _mtlParser.GetMapMraoBytes(), _mtlParser.GetNormBytes());
+
             MainScene.Stage = Scene.LabaStage.Laba1;
 
             MainScene.Camera = new Camera(new Vector3(0, 0f, 0f), new Vector3(0, 1, 0), new Vector3(0, 0, 1),
@@ -67,11 +72,12 @@ namespace CGA
             x = MainScene.Camera.Eye.X;
             y = MainScene.Camera.Eye.Y;
             z = MainScene.Camera.Eye.Z;
-            MainScene.Light = new PointLight(x, y, z, 0.6f, false, false);
+            MainScene.Light.Add(new PointLight(0, 10, 10, 0.6f, false, false, new Vector3(1f, 0.8f, 0f), new Vector3(1f, 1f, 1f)));
+            
             MainScene.ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(MainScene.Camera));
             MainScene.ProjectionMatrix = Matrix4x4.Transpose(MatrixOperator.GetProjectionMatrix(MainScene.Camera));
             MainScene.ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(WindowWidth, WindowHeight));
-
+            drawer = new Drawer(WindowWidth, WindowHeight, new nint(), 0);
             Redraw();
         }
 
@@ -88,7 +94,7 @@ namespace CGA
                     MainScene.Camera.Radius * (float)Math.Cos(MainScene.Camera.CameraZeta),
                     MainScene.Camera.Radius * (float)Math.Sin(MainScene.Camera.CameraPhi) *
                     (float)Math.Sin(MainScene.Camera.CameraZeta));
-            MainScene.Light = new PointLight(x, y, z, 0.6f, MainScene.Ambient, MainScene.Specular);
+            MainScene.Light[0] = new PointLight(MainScene.Camera.Eye.X, MainScene.Camera.Eye.Y, MainScene.Camera.Eye.Z, 0.5f, MainScene.Ambient, MainScene.Specular, new Vector3(0f, 0f, 1f), new Vector3(1f, 1f, 1));
 
             MainScene.UpdateViewMatix();
 
@@ -108,6 +114,10 @@ namespace CGA
             else if (MainScene.Stage == Scene.LabaStage.Laba3)
             {
                 DrawLab3(buffer, drawer);
+            }
+            else if (MainScene.Stage == Scene.LabaStage.Laba4)
+            {
+                DrawLab4(buffer, drawer);
             }
             writableBitmap.AddDirtyRect(rect);
             writableBitmap.Unlock();
@@ -141,8 +151,8 @@ namespace CGA
                                     (int)TempVertexI.X < WindowWidth && (int)TempVertexJ.X < WindowWidth &&
                                     (int)TempVertexI.Y < WindowHeight && (int)TempVertexJ.Y < WindowHeight)
                         {
-                            drawer.DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
-                                pixels, stride);
+                            DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
+                                       pixels, stride);
                         }
 
                         for (int i = 0; i < FaceVertexes.Count - 1; i++)
@@ -155,8 +165,8 @@ namespace CGA
                                 (int)TempVertexI.X < WindowWidth && (int)TempVertexJ.X < WindowWidth &&
                                 (int)TempVertexI.Y < WindowHeight && (int)TempVertexJ.Y < WindowHeight)
                             {
-                                drawer.DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
-                                    pixels, stride);
+                                DrawLine((int)TempVertexI.X, (int)TempVertexI.Y, (int)TempVertexJ.X, (int)TempVertexJ.Y,
+                                       pixels, stride);
                             }
                         }
                     }
@@ -187,7 +197,7 @@ namespace CGA
                             var triangle = Enumerable.Range(0, FaceVertexes.Count)
                                 .Select(i => MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]))
                                 .ToList();
-                            float light = MainScene.Light.CalculateLightLaba2(new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                            float light = MainScene.Light[0].CalculateLightLaba2(new Vector3(Vertexes[FaceVertexes[0] - 1].X,
                                         Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z), PoliNormal);
                             drawer.Rasterize(triangle,
                                 Color.FromArgb(
@@ -202,12 +212,11 @@ namespace CGA
 
         private void DrawLab3(IntPtr buffer, Drawer drawer) 
         {
-            DrawLab2(buffer, drawer);
             Parallel.ForEach(Reader.Faces, face =>
-            //foreach (var face in Reader.Faces)
             {
                 var FaceVertexes = face.VertexIds.ToList();
                 var FaceNormales = face.NormalIds.ToList();
+                var FaceTextels = face.TextureIds.ToList();
                 var ZeroVertext = Vertexes[FaceVertexes[0] - 1];
                 Vector3 PoliNormal = Vector3.Zero;
                 for (int i = 0; i < FaceNormales.Count; i++)
@@ -223,10 +232,53 @@ namespace CGA
                     var triangleNormales = Enumerable.Range(0, FaceVertexes.Count)
                         .Select(i => Normales[FaceNormales[i] - 1])
                         .ToList();
+                    var triangleReals = Enumerable.Range(0, FaceVertexes.Count)
+                        .Select(i => Vertexes[FaceVertexes[i] - 1])
+                        .ToList();
                     var originalVertexes = Enumerable.Range(0, FaceVertexes.Count)
-                       .Select(i => Vertexes[FaceVertexes[i] - 1])
+                       .Select(i => MainScene.GetViewVertex(Vertexes[FaceVertexes[i] - 1]))
                        .ToList();
-                    drawer.Rasterize(triangleVertexes, triangleNormales, originalVertexes, MainScene);
+                    drawer.Rasterize(triangleVertexes, triangleNormales, triangleReals, originalVertexes, MainScene);
+                }
+            });
+        }
+
+        private void DrawLab4(IntPtr buffer, Drawer drawer)
+        {
+            Parallel.ForEach(Reader.Faces, face =>
+            {
+                var FaceVertexes = face.VertexIds.ToList();
+                var FaceNormales = face.NormalIds.ToList();
+                var FaceTextels = face.TextureIds.ToList();
+                var Textels = Reader.VertexTextures.ToList();
+                var ZeroVertext = Vertexes[FaceVertexes[0] - 1];
+                Vector3 PoliNormal = Vector3.Zero;
+                for (int i = 0; i < FaceNormales.Count; i++)
+                {
+                    PoliNormal += Normales[FaceNormales[i] - 1];
+                }
+                if (Vector3.Dot(PoliNormal / FaceNormales.Count, -new Vector3(Vertexes[FaceVertexes[0] - 1].X,
+                              Vertexes[FaceVertexes[0] - 1].Y, Vertexes[FaceVertexes[0] - 1].Z) + MainScene.Camera.Eye) > 0)
+                {
+                    var triangleVertexes = Enumerable.Range(0, FaceVertexes.Count)
+                      .Select(i => MainScene.GetTransformedVertex(Vertexes[FaceVertexes[i] - 1]))
+                      .ToList();
+                    var originalVertexes = Enumerable.Range(0, FaceVertexes.Count)
+                      .Select(i => Vertexes[FaceVertexes[i] - 1])
+                      .ToList();
+                    var triangleTextels = Enumerable.Range(0, FaceTextels.Count)
+                        .Select(i => Textels[FaceTextels[i] - 1])
+                        .ToList();
+                    var triangleReals = Enumerable.Range(0, FaceVertexes.Count)
+                        .Select(i => Vertexes[FaceVertexes[i] - 1])
+                        .ToList();
+                    var triangleView = Enumerable.Range(0, FaceVertexes.Count)
+                        .Select(i => MainScene.GetViewVertex(Vertexes[FaceVertexes[i] - 1]))
+                        .ToList();
+
+                    drawer.Rasterize(triangleVertexes, triangleTextels, triangleReals, triangleView, MainScene, true);
+
+
                 }
             });
         }
@@ -255,6 +307,9 @@ namespace CGA
                     break;
                 case Key.D3:
                     MainScene.Stage = Scene.LabaStage.Laba3;
+                    break;
+                case Key.D4:
+                    MainScene.Stage = Scene.LabaStage.Laba4;
                     break;
                 case Key.A:
                     MainScene.Camera.Target += new Vector3(-1f, 0, 0);
@@ -344,5 +399,58 @@ namespace CGA
                 Redraw();
             }
         }
+
+        public unsafe void DrawLine(int x0, int y0, int x1, int y1, byte* data, int stride)
+        {
+            bool step = Math.Abs(y1 - y0) > Math.Abs(x1 - x0);
+
+            if (step)
+            {
+                (x0, y0) = (y0, x0);
+                (x1, y1) = (y1, x1);
+            }
+
+            if (x0 > x1)
+            {
+                (x0, x1) = (x1, x0);
+                (y0, y1) = (y1, y0);
+            }
+
+            int dx = x1 - x0;
+            int dy = Math.Abs(y1 - y0);
+            int error = dx / 2;
+            int ystep = (y0 < y1) ? 1 : -1;
+            int y = y0;
+            int var1, var2;
+
+            for (int x = x0; x <= x1; x++)
+            {
+                if (step)
+                {
+                    var1 = x;
+                    var2 = y;
+                }
+                else
+                {
+                    var1 = y;
+                    var2 = x;
+                }
+
+                byte* pixelPtr = data + var1 * stride + var2 * 3;
+
+                *pixelPtr++ = 255;
+                *pixelPtr++ = 255;
+                *pixelPtr = 255;
+
+                error -= dy;
+
+                if (error < 0)
+                {
+                    y += ystep;
+                    error += dx;
+                }
+            }
+        }
+
     }
 }

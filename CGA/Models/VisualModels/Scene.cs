@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Numerics;
 using ObjVisualizer.GraphicsComponents;
 using ObjVisualizer.MathModule;
 
@@ -17,7 +18,7 @@ namespace ObjVisualizer.Models.VisualModels
 
         private static Scene? Instance;
 
-        public PointLight Light;
+        public List<PointLight> Light;
 
         public bool Ambient { get => _ambient; set { _ambient = value; } }
         public bool Specular { get => _specular; set { _specular = value; } }
@@ -36,6 +37,8 @@ namespace ObjVisualizer.Models.VisualModels
             Laba5
         }
 
+        public GraphicsObject GraphicsObjects = null!;
+
         private Matrix4x4 RotateMatrix;
         private Matrix4x4 ScaleMatrix;
         private Matrix4x4 MoveMatrix;
@@ -50,7 +53,7 @@ namespace ObjVisualizer.Models.VisualModels
             ScaleMatrix = Matrix4x4.Transpose(Matrix4x4.Identity);
             MoveMatrix = Matrix4x4.Transpose(Matrix4x4.Identity);
             Camera = new Camera(Vector3.Zero, Vector3.Zero, Vector3.Zero, 0, 0, 0, 0);
-            Light = new PointLight();
+            Light = [];
             ChangeStatus = true;
         }
 
@@ -59,6 +62,16 @@ namespace ObjVisualizer.Models.VisualModels
             Instance ??= new Scene();
 
             return Instance;
+        }
+
+        public Vector4 GetViewVertex(Vector4 Vertex)
+        {
+            Vertex = Vector4.Transform(Vertex, ViewMatrix);
+            Vertex = Vector4.Transform(Vertex, ProjectionMatrix);
+            var W = Vertex.Z;
+            var temp = Vector4.Divide(Vertex, Vertex.W);
+            return new Vector4(temp.X, temp.Y, temp.Z, W);
+
         }
 
         public void UpdateViewMatix()
