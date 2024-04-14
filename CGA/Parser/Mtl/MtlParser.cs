@@ -26,6 +26,7 @@ namespace ObjVisualizer.Parser.Mtl
 
         private const string MAP_KD = "map_kd";
         private const string MAP_MRAO = "map_mrao";
+        private const string MAP_KE = "map_ke";
         private const string NORM = "norm";
 
         public ImageData GetMapKdBytes() => GetBitmapBytes(MAP_KD);
@@ -34,11 +35,13 @@ namespace ObjVisualizer.Parser.Mtl
 
         public ImageData GetNormBytes() => GetBitmapBytes(NORM);
 
+        public ImageData GetEmiBytes() => GetBitmapBytes(MAP_KE);
+
         private ImageData GetBitmapBytes(string paramName)
         {
             string line;
 
-            using var reader = new StreamReader(_mtlName);
+            using var reader = new StreamReader(_mtlDirectory + "\\" + _mtlName);
             {
                 do
                 {
@@ -50,7 +53,7 @@ namespace ObjVisualizer.Parser.Mtl
                 return null;
             var fileName = line.Split(' ')[1];
             var fileExtension = Path.GetExtension(fileName);
-            var bitmap = new Bitmap(fileName);
+            var bitmap = new Bitmap(_mtlDirectory + "\\" + fileName);
 
             PixelFormat pixelFormat = bitmap.PixelFormat;
             Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);

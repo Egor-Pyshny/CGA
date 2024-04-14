@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace ObjVisualizer.GraphicsComponents
 {
@@ -13,19 +14,19 @@ namespace ObjVisualizer.GraphicsComponents
 
         public readonly float _specularIntencity = 1f;
 
-        public readonly float _diffuceIntencity = 1f;
+        public readonly float _diffuceIntencity = 0.5f;
 
 
         private readonly bool ambient = ambient;
         private readonly bool specular = specular;
 
-        private readonly Vector3 LightColorAmbient = new Vector3(1,1f,1);
+        private readonly Vector3 LightColorAmbient = new Vector3(1, 1f, 1);
 
-        private readonly Vector3 LightColorDiffuse= new Vector3(1,1f,1);
+        private readonly Vector3 LightColorDiffuse = ColorDiffuce;
 
-        private readonly Vector3 LightColorSpecular= new Vector3(1,0f,0);
+        private readonly Vector3 LightColorSpecular = ColorSpecular;
 
-        public float CalculateLightLaba2(Vector3 point, Vector3 normal)
+        public float CalculateLightDiffuse(Vector3 point, Vector3 normal)
         {
             Vector3 l = new Vector3(X, Y, Z) - point;
             float lightResult = 0f;
@@ -36,13 +37,15 @@ namespace ObjVisualizer.GraphicsComponents
                 lightResult = Intency * angle / (l.Length() * normal.Length());
             }
 
-           
+
             return lightResult;
         }
-        public Vector3 CalculateLightLaba3(Vector3 point, Vector3 normal, Vector3 eye)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 CalculateLightWithSpecular(Vector3 point, Vector3 normal, Vector3 eye)
         {
             Vector3 l = new Vector3(X, Y, Z) - point;
-            int s = 10;
+            float s = 100f;
             Vector3 lightResult = new(0, 0, 0);
             if (ambient)
                 lightResult = LightColorAmbient * _ambientIntencity;
@@ -50,7 +53,7 @@ namespace ObjVisualizer.GraphicsComponents
 
             if (angle > 0)
             {
-                lightResult += _diffuceIntencity*LightColorDiffuse * Intency * angle / (l.Length() * normal.Length());
+                lightResult += _diffuceIntencity * LightColorDiffuse * Intency * angle / (l.Length() * normal.Length());
             }
             if (specular)
             {
@@ -62,12 +65,13 @@ namespace ObjVisualizer.GraphicsComponents
                     lightResult += _specularIntencity * LightColorSpecular * Intency * float.Pow(r_dot_v / (R.Length() * V.Length()), s);
                 }
             }
-           
+
 
 
             return lightResult;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3 CalculateLightWithMaps(Vector3 point, Vector3 normal, Vector3 eye, float specIntenc)
         {
             Vector3 l = new Vector3(X, Y, Z) - point;
@@ -91,6 +95,8 @@ namespace ObjVisualizer.GraphicsComponents
                     lightResult += specIntenc / 255 * LightColorSpecular * Intency * float.Pow(r_dot_v / (R.Length() * V.Length()), s);
                 }
             }
+
+
 
             return lightResult;
         }

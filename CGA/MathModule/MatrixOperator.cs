@@ -57,8 +57,8 @@ namespace ObjVisualizer.MathModule
 
         public static Matrix4x4 GetProjectionMatrix(Camera camera) =>
             new(1.0f / (camera.Aspect * (float)Math.Tan(camera.FOV / 2.0f)), 0, 0, 0,
-                0, 1.0f / (float)Math.Tan(camera.FOV / 2.0f), 0, 0,
-                0, 0, camera.ZFar / (camera.ZNear - camera.ZFar), camera.ZNear * camera.ZFar / (camera.ZNear - camera.ZFar),
+                0, 1.0f / ((float)Math.Tan(camera.FOV / 2.0f)), 0, 0,
+                0, 0, camera.ZFar / (camera.ZNear - camera.ZFar), (camera.ZNear * camera.ZFar) / (camera.ZNear - camera.ZFar),
                 0, 0, -1.0f, 0);
 
         public static Matrix4x4 GetViewPortMatrix(int Width, int Height) =>

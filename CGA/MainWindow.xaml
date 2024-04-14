@@ -11,8 +11,8 @@
             <ColumnDefinition Width="1000"/>
             <ColumnDefinition Width="200"/>
         </Grid.ColumnDefinitions>
-        <Grid>
-            <Image Width="1000" Height="1000" x:Name="img"/>
+        <Grid x:Name="Pict">
+            
         </Grid>
         <Grid Background="Black" Grid.Column="1">
             <StackPanel>

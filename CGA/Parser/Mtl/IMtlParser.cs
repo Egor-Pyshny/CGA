@@ -7,5 +7,6 @@ namespace ObjVisualizer.Parser.Mtl
         ImageData GetMapKdBytes();
         ImageData GetMapMraoBytes();
         ImageData GetNormBytes();
+        ImageData GetEmiBytes();
     }
 }

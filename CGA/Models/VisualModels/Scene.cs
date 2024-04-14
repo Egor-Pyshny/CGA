@@ -23,19 +23,10 @@ namespace ObjVisualizer.Models.VisualModels
         public bool Ambient { get => _ambient; set { _ambient = value; } }
         public bool Specular { get => _specular; set { _specular = value; } }
 
-        private bool _ambient = true;
-        private bool _specular = true;
+        private bool _ambient;
+        private bool _specular;
 
-        public LabaStage Stage;
-
-        public enum LabaStage
-        {
-            Laba1,
-            Laba2,
-            Laba3,
-            Laba4,
-            Laba5
-        }
+        public Stage Stage;
 
         public GraphicsObject GraphicsObjects = null!;
 
@@ -64,6 +55,35 @@ namespace ObjVisualizer.Models.VisualModels
             return Instance;
         }
 
+        public void UpdateViewMatix()
+        {
+            ViewMatrix = Matrix4x4.CreateLookAt(Camera.Eye, Camera.Target, Camera.Up);
+            //ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(Camera));
+        }
+
+        public void SceneResize(int NewWindowWidth, int NewWindowHeight)
+        {
+            Camera.ChangeCameraAspect(NewWindowWidth, NewWindowHeight);
+            ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(NewWindowWidth, NewWindowHeight));
+
+        }
+
+        public Vector4 GetTransformedVertex(Vector4 Vertex, out bool isOut)
+        {
+            Vertex = Vector4.Transform(Vertex, ViewMatrix);
+            Vertex = Vector4.Transform(Vertex, ProjectionMatrix);
+
+            if (Vertex.W < 0)
+            {
+                isOut = false;
+            }
+            else
+                isOut = true;
+            Vertex = Vector4.Divide(Vertex, Vertex.W);
+            Vertex = Vector4.Transform(Vertex, ViewPortMatrix);
+
+            return Vertex;
+        }
         public Vector4 GetViewVertex(Vector4 Vertex)
         {
             Vertex = Vector4.Transform(Vertex, ViewMatrix);
@@ -72,17 +92,6 @@ namespace ObjVisualizer.Models.VisualModels
             var temp = Vector4.Divide(Vertex, Vertex.W);
             return new Vector4(temp.X, temp.Y, temp.Z, W);
 
-        }
-
-        public void UpdateViewMatix()
-        {
-            ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(Camera));
-        }
-
-        public void SceneResize(int NewWindowWidth, int NewWindowHeight)
-        {
-            Camera.ChangeCameraAspect(NewWindowWidth, NewWindowHeight);
-            ViewPortMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewPortMatrix(NewWindowWidth, NewWindowHeight));
         }
 
         public Vector4 GetTransformedVertex(Vector4 Vertex)
@@ -100,36 +109,20 @@ namespace ObjVisualizer.Models.VisualModels
             ViewMatrix = Matrix4x4.Transpose(MatrixOperator.GetViewMatrix(Camera));
         }
 
-        //public void UpdateModelMatrix()
-        //{
-        //    ModelMatrix = Matrix4x4.Transpose(MoveMatrix);
-        //}
-
         public void ResetTransformMatrixes()
         {
             RotateMatrix = Matrix4x4.Transpose(Matrix4x4.Identity);
             MoveMatrix = Matrix4x4.Transpose(Matrix4x4.Identity);
             ScaleMatrix = Matrix4x4.Transpose(Matrix4x4.Identity);
         }
+    }
 
-        //public void UpdateMoveMatrix(Vector3 move)
-        //{
-        //    MoveMatrix = MatrixOperator.Move(move);
-        //    UpdateModelMatrix();
-        //}
-
-        //public void UpdateRotateMatrix(Vector3 rotation)
-        //{
-        //    RotateMatrix = MatrixOperator.RotateX(rotation.X * Math.PI / 180.0)
-        //        * MatrixOperator.RotateY(rotation.Y * Math.PI / 180.0);
-
-        //    UpdateModelMatrix();
-        //}
-
-        //public void UpdateScaleMatrix(float deltaScale)
-        //{
-        //    ScaleMatrix = MatrixOperator.Scale(new Vector3(1 + deltaScale, 1 + deltaScale, 1 + deltaScale));
-        //    UpdateModelMatrix();
-        //}
+    public enum Stage
+    {
+        Stage1,
+        Stage2,
+        Stage3,
+        Stage4,
+        Stage5
     }
 }
